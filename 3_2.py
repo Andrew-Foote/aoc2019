@@ -1,5 +1,25 @@
 from dataclasses import dataclass
 
+def intersect(iterable1, iterable2, dupe_key, combiner):
+    s = set(map(dupe_key, iterable1))
+
+    for i in iterable2:
+        if dupe_key(i) in s:
+            yield i
+
+def dedupe(iterable, dupe_key, sort_key):
+    r = []
+    ls = sorted(iterable, key=sort_key)
+
+    last = dupe_key(ls[0])
+    for i in ls[1:]:
+        key = dupe_key(i)
+        if key != last:
+            r.append(i)
+            last = key
+
+    return r
+
 @dataclass
 class Vector:
     x: int
@@ -34,5 +54,10 @@ def parse_wire(src):
 
 with open('inputs/3.txt') as f:
     wire1, wire2 = map(parse_wire, f)
+
+path1 = enumerate(path(wire1))
+path2 = enumerate(path(wire2))
+isect = intersect(path1, path2, lambda pos, i: pos)
+
 
 print(min(map(abs, set(path(wire1)) & set(path(wire2)))))
