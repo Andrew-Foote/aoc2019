@@ -26,8 +26,7 @@ def test(program, noun, verb):
     run(program)
     return program[0]
 
-with open('inputs/2.txt') as f:
-    program = list(map(int, f.read().split(',')))
+program = list(map(int, open('inputs/2.txt').read().split(',')))
 
 for noun in range(100):
     for verb in range(100):

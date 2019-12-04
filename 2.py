@@ -17,9 +17,7 @@ def run(program):
 
         counter += 4
 
-with open('inputs/2.txt') as f:
-    program = list(map(int, f.read().split(',')))
-
+program = list(map(int, open('inputs/2.txt').read().split(',')))
 program[1] = 12
 program[2] = 2
 run(program)

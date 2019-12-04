@@ -1,5 +1,3 @@
-from utils import file2list
-
 def fuel(mass):
     # mass // 3 - 2 <= 0 iff mass // 3 <= 2, i.e. mass <= 8
     if mass <= 8:
