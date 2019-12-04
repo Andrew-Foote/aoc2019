@@ -3,4 +3,4 @@ from utils import file2list
 def fuel(mass):
     return mass // 3 - 2
 
-print(sum(map(fuel, file2list('inputs/1.txt'))))
+print(sum(fuel(int(mass)) for mass in open('inputs/1.txt')))

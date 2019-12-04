@@ -8,4 +8,4 @@ def fuel(mass):
     fuel_ = mass // 3 - 2
     return fuel_ + fuel(fuel_)
 
-print(sum(map(fuel, file2list('inputs/1.txt'))))
+print(sum(fuel(int(mass)) for mass in open('inputs/1.txt')))
