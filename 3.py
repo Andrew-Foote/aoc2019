@@ -21,5 +21,5 @@ unit_vectors = {
 def parse_wire(wire):
     return [int(token[1:]) * unit_vectors[token[0]] for token in wire.split(',')]
 
-wire1, wire2 = map(parse_wire, open('inputs/3.txt'))
-print(min(round(manhattan_abs(position)) for position in set(path(wire1)) & set(path(wire2))))
+wire1, wire2 = (set(path(parse_wire(wire))) for wire in open('inputs/3.txt'))
+print(min(round(manhattan_abs(position)) for position in wire1 & wire2))

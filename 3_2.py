@@ -1,63 +1,47 @@
-from dataclasses import dataclass
-
-def intersect(iterable1, iterable2, dupe_key, combiner):
-    s = set(map(dupe_key, iterable1))
-
-    for i in iterable2:
-        if dupe_key(i) in s:
-            yield i
-
-def dedupe(iterable, dupe_key, sort_key):
-    r = []
-    ls = sorted(iterable, key=sort_key)
-
-    last = dupe_key(ls[0])
-    for i in ls[1:]:
-        key = dupe_key(i)
-        if key != last:
-            r.append(i)
-            last = key
-
-    return r
-
-@dataclass
-class Vector:
-    x: int
-    y: int
-
-    def __add__(self, other):
-        return Vector(self.x + other.x, self.y + other.y)
-
-    def __hash__(self):
-        return hash((self.x, self.y))
-
-    def __abs__(self):
-        return abs(self.x) + abs(self.y)
-
 def path(wire):
-    pos = Vector(0, 0)
+    position = 0
 
-    for direction, magnitude in wire:        
+    for vector in wire:
+        magnitude = round(abs(vector))
+        direction = vector / magnitude        
         for _ in range(magnitude):
-            pos += direction
-            yield pos
+            position += direction
+            yield position
+
+def manhattan_abs(vector):
+    return abs(vector.real) + abs(vector.imag)
+
+# we need each intersection along with the number of steps each wire takes to first get to that intersection
 
 unit_vectors = {
-    'R': Vector(1, 0),
-    'D': Vector(0, -1),
-    'L': Vector(-1, 0),
-    'U': Vector(0, 1),
+    'R': 1,
+    'D': -1j,
+    'L': -1,
+    'U': 1j,
 }
 
-def parse_wire(src):
-    return [(unit_vectors[token[0]], int(token[1:])) for token in src.split(',')]
+def parse_wire(wire):
+    return [int(token[1:]) * unit_vectors[token[0]] for token in wire.split(',')]
 
-with open('inputs/3.txt') as f:
-    wire1, wire2 = map(parse_wire, f)
+# inelegant but works
+wire1, wire2 = (enumerate(path(parse_wire(wire))) for wire in open('inputs/3.txt'))
+wire1_index = {}
 
-path1 = enumerate(path(wire1))
-path2 = enumerate(path(wire2))
-isect = intersect(path1, path2, lambda pos, i: pos)
+for index, position in wire1:
+    if position not in wire1_index:
+        wire1_index[position] = index
 
+wire2_index = {}
+current_min = None
 
-print(min(map(abs, set(path(wire1)) & set(path(wire2)))))
+for index, position in wire2:
+    if position not in wire2_index:
+        if position in wire1_index:
+            index_sum = wire1_index[position] + index
+
+            if current_min is None or index_sum < current_min:
+                current_min = index_sum
+
+        wire2_index[position] = index
+
+print(current_min + 2)
