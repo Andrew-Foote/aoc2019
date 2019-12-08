@@ -1,17 +1,21 @@
-import sys
+from dataclasses import dataclass
+import typing as t
 
 def digits(n):
     while n > 0:
         yield n % 10
         n //= 10
 
-class memory:
+class Memory:
     def __init__(self, cells):
         self.cells = list(cells)
 
     def add_index(self, index):
         if isinstance(index, slice):
             index = index.stop
+
+        if index < len(self.cells):
+            return
 
         if len(self.cells) < index:
             self.cells.extend([0] * ((index + 1) - len(self.cells)))
@@ -24,59 +28,86 @@ class memory:
         self.add_index(index)
         self.cells[index] = value
 
-def run(program):
-    counter = 0
+@dataclass
+class Op:
+    callable_: t.Callable
 
-    def process(params, count):
-        param_modes.extend([0] * max(0, (count - len(param_modes))))
+    # True = input parameter
+    # False = output parameter
+    params: t.List[bool]
 
-        for i, param, mode in zip(range(len(params)), params, param_modes):
-            if mode == 0:
-                params[i] = program[params[i]]
-            elif mode == 1:
-                pass
-            else:
-                raise ValueError(f'unknown parameter mode {mode} at position {counter}')
+class ProgramMemory(Memory):
+    def __init__(self, cells, counter=0):
+        super().__init__(cells)
+        self.counter = counter
 
-    while True:
-        opcode = program[counter] % 100
-        param_modes = list(digits(program[counter] // 100))
+    def offset2index(self, offset):
+        if isinstance(offset, slice):
+            new_start = None if offset.start is None else offset.start + self.counter
+            new_stop = None if offset.stop is None else offset.stop + self.counter
 
-        if opcode == 99:
-            break
-        elif opcode == 1:
-            params = program[counter + 1:counter + 4]
-            process(params, 3)
-            a, b, c = params
-            program[c] = a + b
-            counter += 4
-        elif opcode == 2:
-            params = program[counter + 1:counter + 4]
-            process(params, 3)
-            a, b, c = params
-            program[c] = a + b
-            counter += 4
-        elif opcode == 3:
-            params = program[counter + 1:counter + 2]
-            process(params, 1)
-            a, = params
-            program[a] = input('tell me summat ')
-            counter += 2
-        elif opcode == 4:
-            params = program[counter + 1:counter + 2]
-            process(params, 1)
-            a, = params
-            print(a)
-            counter += 2
+            return slice(new_start, new_stop, offset.step)
         else:
-            raise ValueError(f'unknown opcode {opcode} at position {counter}')
+            return offset + self.counter
 
-def test(program, noun, verb):
-    program = program.copy()
-    program[1] = noun
-    program[2] = verb
-    run(program)
-    return program[0]
+    def get_offset(self, offset):
+        return self[self.offset2index(offset)]
 
-program = memory(map(int, open('inputs/5.txt').read().split(',')))
-run(program)
+    def set_offset(self, offset, value):
+        self[self.offset2index(offset)] = value
+
+    def halt(self):
+        self.counter = -1
+
+    def add(self, a, b, c):
+        self[c] = a + b
+
+    def multiply(self, a, b, c):
+        self[c] = a * b
+
+    def read(self, a):
+        self[a] = int(input('> '))
+
+    def write(self, a):
+        print(a)
+
+    def step(self):
+        modes, op = divmod(self.get_offset(0), 100)
+        op = self.OPCODE_MAP[op]
+        modes = list(digits(modes))
+        mode_count = len(modes)
+        param_count = len(op.params)
+
+        if mode_count < param_count:
+            modes.extend([0] * (param_count - mode_count))
+
+        self.counter += 1
+        params = self.get_offset(slice(0, param_count))
+
+        for i, param, is_input_param, mode in zip(range(param_count), params, op.params, modes):
+            if is_input_param and mode == 0:
+                params[i] = self[params[i]]          
+
+        op.callable_(self, *params)
+        self.counter += param_count
+
+    def run(self):
+        while self.counter >= 0:
+            self.step()
+
+HALT = Op(ProgramMemory.halt, [])
+ADD = Op(ProgramMemory.add, [True, True, False])
+MULTIPLY = Op(ProgramMemory.multiply, [True, True, False])
+READ = Op(ProgramMemory.read, [False])
+WRITE = Op(ProgramMemory.write, [True])
+
+ProgramMemory.OPCODE_MAP = {
+    99: HALT,
+    1: ADD,
+    2: MULTIPLY,
+    3: READ,
+    4: WRITE,
+}
+
+program = ProgramMemory(map(int, open('inputs/5.txt').read().split(',')))
+program.run()
